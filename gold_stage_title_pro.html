@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gold Stage Title Pro</title>
+<style>
+  @font-face {
+    font-family: "Yangginchae";
+    src: url("./yangginchae.otf") format("opentype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+  }
+  :root {
+    color-scheme: dark;
+    --panel: rgba(22, 8, 2, .78);
+    --line: rgba(255, 205, 116, .22);
+    --gold: #ffcf72;
+    --muted: #d5b98a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #090200;
+    font-family: "Yangginchae", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  }
+  canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #090200;
+  }
+  .ui {
+    position: fixed;
+    z-index: 10;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(1120px, calc(100vw - 28px));
+    display: grid;
+    grid-template-columns: minmax(230px, 1fr) auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(39,13,3,.88), rgba(14,4,1,.78));
+    box-shadow:
+      0 16px 70px rgba(0,0,0,.48),
+      inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter: blur(16px) saturate(130%);
+    transition: opacity .25s, transform .25s;
+  }
+  .ui.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -20px);
+  }
+  .text-wrap {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+  }
+  label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  textarea {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    resize: none;
+    border: 1px solid rgba(255, 213, 133, .18);
+    border-radius: 12px;
+    padding: 10px 12px;
+    outline: none;
+    background: rgba(8, 2, 0, .62);
+    color: #fff7e5;
+    font: 800 17px/1.25 inherit;
+    box-shadow: inset 0 0 24px rgba(0,0,0,.32);
+  }
+  textarea:focus {
+    border-color: rgba(255, 207, 114, .55);
+    box-shadow: 0 0 0 3px rgba(255, 185, 56, .09);
+  }
+  .control {
+    display: grid;
+    grid-template-columns: auto 110px 42px;
+    align-items: center;
+    gap: 7px;
+  }
+  input[type="range"] {
+    accent-color: #ffbd45;
+    width: 110px;
+  }
+  .value {
+    color: #ffe6b1;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .buttons {
+    display: flex;
+    gap: 8px;
+  }
+  button {
+    height: 42px;
+    border: 1px solid rgba(255, 211, 124, .22);
+    border-radius: 12px;
+    padding: 0 14px;
+    cursor: pointer;
+    color: #fff4d9;
+    font: 800 13px/1 inherit;
+    background: linear-gradient(180deg, rgba(111,45,7,.92), rgba(49,15,2,.92));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.08),
+      0 8px 22px rgba(0,0,0,.22);
+    transition: transform .14s, filter .14s, border-color .14s;
+  }
+  button:hover {
+    filter: brightness(1.18);
+    border-color: rgba(255, 220, 148, .44);
+  }
+  button:active { transform: translateY(1px) scale(.99); }
+  button.primary {
+    color: #241000;
+    border-color: rgba(255, 241, 202, .58);
+    background: linear-gradient(180deg, #fff0bd, #ffa81f 58%, #c55b02);
+    text-shadow: 0 1px 0 rgba(255,255,255,.45);
+  }
+  .hint {
+    position: fixed;
+    z-index: 9;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    border-radius: 999px;
+    color: rgba(255, 232, 190, .74);
+    background: rgba(12, 3, 0, .48);
+    border: 1px solid rgba(255, 210, 125, .12);
+    backdrop-filter: blur(10px);
+    font-size: 12px;
+    user-select: none;
+    transition: opacity .25s;
+  }
+  .hint.hidden { opacity: 0; }
+  @media (max-width: 900px) {
+    .ui { grid-template-columns: 1fr auto; }
+    .control { display: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div class="ui" id="ui">
+  <div class="text-wrap">
+    <label for="titleText">문구</label>
+    <textarea id="titleText" maxlength="80">안주빈쌤
+예뻐요</textarea>
+  </div>
+
+  <div class="control">
+    <label for="sparkRange">반짝임</label>
+    <input id="sparkRange" type="range" min="0.5" max="2.2" step="0.05" value="1.25" />
+    <span class="value" id="sparkValue">1.25×</span>
+  </div>
+
+  <div class="control">
+    <label for="speedRange">등장 속도</label>
+    <input id="speedRange" type="range" min="1.2" max="5.0" step="0.1" value="2.8" />
+    <span class="value" id="speedValue">2.8s</span>
+  </div>
+
+  <div class="buttons">
+    <button id="playBtn" class="primary">재생</button>
+    <button id="shotBtn">PNG</button>
+    <button id="fullBtn">전체화면</button>
+  </div>
+</div>
+
+<div class="hint" id="hint">
+  Enter 재생 · F 전체화면 · H UI 숨기기 · 클릭해도 다시 재생
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+
+  const ui = document.getElementById("ui");
+  const hint = document.getElementById("hint");
+  const textInput = document.getElementById("titleText");
+  const sparkRange = document.getElementById("sparkRange");
+  const speedRange = document.getElementById("speedRange");
+  const sparkValue = document.getElementById("sparkValue");
+  const speedValue = document.getElementById("speedValue");
+  const playBtn = document.getElementById("playBtn");
+  const shotBtn = document.getElementById("shotBtn");
+  const fullBtn = document.getElementById("fullBtn");
+
+  const bgCanvas = document.createElement("canvas");
+  const bgCtx = bgCanvas.getContext("2d");
+
+  const textCanvas = document.createElement("canvas");
+  const textCtx = textCanvas.getContext("2d", { willReadFrequently: true });
+
+  const maskCanvas = document.createElement("canvas");
+  const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true });
+
+  const glowCanvas = document.createElement("canvas");
+  const glowCtx = glowCanvas.getContext("2d");
+
+  const particleCanvas = document.createElement("canvas");
+  const particleCtx = particleCanvas.getContext("2d");
+
+  const grainCanvas = document.createElement("canvas");
+  const grainCtx = grainCanvas.getContext("2d");
+
+  let W = 1280;
+  let H = 720;
+  let DPR = 1;
+  let startTime = performance.now();
+  let titleBounds = { x: 0, y: 0, w: 1, h: 1 };
+  let maskPixels = null;
+  let seed = Math.random() * 100000;
+  let textParticles = [];
+  let ambientParticles = [];
+  let streaks = [];
+  let shockRings = [];
+  let dust = [];
+  let uiHidden = false;
+
+  const TAU = Math.PI * 2
+  const CUSTOM_FONT = "\"Yangginchae\"";
+  const TITLE_FONT_FAMILY = `${CUSTOM_FONT},"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif`;
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function mix(a, b, t) { return a + (b - a) * t; }
+  function smoothstep(a, b, v) {
+    const t = clamp((v - a) / (b - a), 0, 1);
+    return t * t * (3 - 2 * t);
+  }
+  function easeOutExpo(t) {
+    return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+  }
+  function easeOutCubic(t) {
+    t = clamp(t, 0, 1);
+    return 1 - Math.pow(1 - t, 3);
+  }
+  function hash(n) {
+    const x = Math.sin(n * 12.9898 + seed * 0.0001) * 43758.5453;
+    return x - Math.floor(x);
+  }
+  function titleFont(size) {
+    return `900 ${size}px ${TITLE_FONT_FAMILY}`;
+  }
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = Math.max(640, window.innerWidth);
+    H = Math.max(360, window.innerHeight);
+
+    canvas.width = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    for (const c of [bgCanvas, textCanvas, maskCanvas, glowCanvas, particleCanvas, grainCanvas]) {
+      c.width = Math.floor(W * DPR);
+      c.height = Math.floor(H * DPR);
+    }
+    for (const cctx of [bgCtx, textCtx, maskCtx, glowCtx, particleCtx, grainCtx]) {
+      cctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+
+    buildBackground();
+    buildText();
+    buildGrain();
+    resetAnimation(false);
+  }
+
+  function buildBackground() {
+    bgCtx.clearRect(0, 0, W, H);
+
+    const base = bgCtx.createLinearGradient(0, 0, 0, H);
+    base.addColorStop(0, "#160300");
+    base.addColorStop(0.42, "#3f0d01");
+    base.addColorStop(0.78, "#140300");
+    base.addColorStop(1, "#050100");
+    bgCtx.fillStyle = base;
+    bgCtx.fillRect(0, 0, W, H);
+
+    const center = bgCtx.createRadialGradient(
+      W * 0.5, H * 0.48, 0,
+      W * 0.5, H * 0.48, Math.max(W, H) * 0.72
+    );
+    center.addColorStop(0, "rgba(255,104,8,.28)");
+    center.addColorStop(0.18, "rgba(183,50,0,.18)");
+    center.addColorStop(0.48, "rgba(80,13,0,.08)");
+    center.addColorStop(1, "rgba(0,0,0,0)");
+    bgCtx.fillStyle = center;
+    bgCtx.fillRect(0, 0, W, H);
+
+    const floorY = H * 0.84;
+    const floor = bgCtx.createLinearGradient(0, floorY, 0, H);
+    floor.addColorStop(0, "rgba(8,1,0,.25)");
+    floor.addColorStop(1, "rgba(0,0,0,.86)");
+    bgCtx.fillStyle = floor;
+    bgCtx.fillRect(0, floorY, W, H - floorY);
+
+    bgCtx.save();
+    bgCtx.globalCompositeOperation = "screen";
+    bgCtx.lineWidth = 1;
+    for (let i = 0; i < 16; i++) {
+      const yy = floorY + (H - floorY) * (i / 16);
+      bgCtx.strokeStyle = `rgba(255,120,15,${0.10 * (1 - i / 16)})`;
+      bgCtx.beginPath();
+      bgCtx.moveTo(0, yy);
+      bgCtx.lineTo(W, yy);
+      bgCtx.stroke();
+    }
+    bgCtx.restore();
+
+    dust = [];
+    const count = Math.floor((W * H) / 11000);
+    for (let i = 0; i < count; i++) {
+      dust.push({
+        x: Math.random() * W,
+        y: Math.random() * H * 0.9,
+        r: Math.random() * 1.2 + 0.2,
+        a: Math.random() * 0.22 + 0.03,
+        p: Math.random() * TAU,
+      });
+    }
+  }
+
+  function chooseFontSize(lines) {
+    const maxWidth = W * 0.88;
+    const maxHeight = H * 0.54;
+    let low = 28;
+    let high = Math.min(340, H * 0.48);
+    let best = low;
+
+    while (low <= high) {
+      const size = Math.floor((low + high) / 2);
+      textCtx.font = titleFont(size);
+      const lineH = size * 0.92;
+      let width = 0;
+      for (const line of lines) width = Math.max(width, textCtx.measureText(line).width);
+      const height = lineH * lines.length;
+      if (width <= maxWidth && height <= maxHeight) {
+        best = size;
+        low = size + 1;
+      } else {
+        high = size - 1;
+      }
+    }
+    return best;
+  }
+
+  function buildText() {
+    const value = (textInput.value || "안녕하세요").trim();
+    const lines = value.split(/\n/).slice(0, 4);
+    const fontSize = chooseFontSize(lines);
+    const lineH = fontSize * 0.92;
+    const totalH = lineH * lines.length;
+    const centerY = H * 0.53;
+    const startY = centerY - totalH / 2 + lineH * 0.78;
+
+    textCtx.clearRect(0, 0, W, H);
+    maskCtx.clearRect(0, 0, W, H);
+
+    textCtx.textAlign = "center";
+    textCtx.textBaseline = "alphabetic";
+    textCtx.font = titleFont(fontSize);
+    textCtx.lineJoin = "round";
+    textCtx.miterLimit = 2;
+
+    maskCtx.textAlign = "center";
+    maskCtx.textBaseline = "alphabetic";
+    maskCtx.font = textCtx.font;
+    maskCtx.lineJoin = "round";
+
+    let left = W, right = 0, top = H, bottom = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const y = startY + i * lineH;
+      const m = textCtx.measureText(lines[i]);
+      const lw = m.width;
+      left = Math.min(left, W / 2 - lw / 2);
+      right = Math.max(right, W / 2 + lw / 2);
+      top = Math.min(top, y - fontSize * 0.82);
+      bottom = Math.max(bottom, y + fontSize * 0.20);
+
+      maskCtx.strokeStyle = "#fff";
+      maskCtx.fillStyle = "#fff";
+      maskCtx.lineWidth = Math.max(3, fontSize * 0.028);
+      maskCtx.strokeText(lines[i], W / 2, y);
+      maskCtx.fillText(lines[i], W / 2, y);
+    }
+
+    titleBounds = {
+      x: clamp(left - fontSize * 0.08, 0, W),
+      y: clamp(top - fontSize * 0.08, 0, H),
+      w: clamp(right - left + fontSize * 0.16, 1, W),
+      h: clamp(bottom - top + fontSize * 0.16, 1, H)
+    };
+
+    maskPixels = maskCtx.getImageData(0, 0, Math.floor(W * DPR), Math.floor(H * DPR));
+
+    createTextParticles(fontSize);
+    createAmbientParticles();
+    createStreaks();
+  }
+
+  function maskAlphaAt(x, y) {
+    if (!maskPixels) return 0;
+    const px = clamp(Math.floor(x * DPR), 0, maskPixels.width - 1);
+    const py = clamp(Math.floor(y * DPR), 0, maskPixels.height - 1);
+    return maskPixels.data[(py * maskPixels.width + px) * 4 + 3];
+  }
+
+  function samplePointInText() {
+    const b = titleBounds;
+    for (let tries = 0; tries < 180; tries++) {
+      const x = b.x + Math.random() * b.w;
+      const y = b.y + Math.random() * b.h;
+      if (maskAlphaAt(x, y) > 150) return { x, y };
+    }
+    return { x: W / 2, y: H / 2 };
+  }
+
+  function createTextParticles(fontSize) {
+    textParticles = [];
+    const intensity = Number(sparkRange.value);
+    const count = Math.floor(clamp((W * H) / 2500 * intensity, 220, 820));
+
+    for (let i = 0; i < count; i++) {
+      const p = samplePointInText();
+      textParticles.push({
+        x: p.x,
+        y: p.y,
+        r: Math.random() * 2.8 + 0.6,
+        phase: Math.random() * TAU,
+        speed: 1.8 + Math.random() * 6.4,
+        delay: Math.random() * 0.88,
+        shine: Math.random() * 0.6 + 0.4,
+        cross: Math.random() < 0.20,
+        drift: Math.random() * 2 - 1,
+      });
+    }
+  }
+
+  function createAmbientParticles() {
+    ambientParticles = [];
+    const intensity = Number(sparkRange.value);
+    const count = Math.floor(clamp((W * H) / 4200 * intensity, 150, 500));
+
+    for (let i = 0; i < count; i++) {
+      ambientParticles.push({
+        x: Math.random() * W,
+        y: Math.random() * H * 0.92,
+        r: Math.random() * 2.2 + 0.25,
+        phase: Math.random() * TAU,
+        speed: 0.35 + Math.random() * 1.8,
+        twinkle: 1.0 + Math.random() * 5.0,
+        depth: Math.random(),
+      });
+    }
+  }
+
+  function createStreaks() {
+    streaks = [];
+    const n = Math.floor(clamp(W / 150, 5, 12));
+    for (let i = 0; i < n; i++) {
+      streaks.push({
+        x: Math.random() * W,
+        y: H * (0.16 + Math.random() * 0.62),
+        len: W * (0.035 + Math.random() * 0.12),
+        speed: W * (0.025 + Math.random() * 0.065),
+        phase: Math.random() * 5,
+        width: Math.random() * 1.6 + 0.5,
+      });
+    }
+  }
+
+  function buildGrain() {
+    const gw = Math.max(280, Math.floor(W / 3));
+    const gh = Math.max(160, Math.floor(H / 3));
+    grainCanvas.width = gw;
+    grainCanvas.height = gh;
+    grainCtx.setTransform(1, 0, 0, 1, 0, 0);
+    const img = grainCtx.createImageData(gw, gh);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.random() * 255;
+      img.data[i] = v;
+      img.data[i + 1] = v * 0.72;
+      img.data[i + 2] = v * 0.38;
+      img.data[i + 3] = Math.random() * 24;
+    }
+    grainCtx.putImageData(img, 0, 0);
+  }
+
+  function resetAnimation(rebuild = true) {
+    seed = Math.random() * 1000000;
+    if (rebuild) {
+      buildText();
+      buildBackground();
+    }
+    startTime = performance.now();
+    shockRings = [
+      { born: 0.35, x: W * 0.5, y: H * 0.52, maxR: Math.max(W, H) * 0.48 },
+      { born: 0.62, x: W * 0.5, y: H * 0.52, maxR: Math.max(W, H) * 0.30 },
+    ];
+  }
+
+  function drawStar(c, x, y, r, alpha, warm = false) {
+    if (alpha <= 0.003) return;
+    c.save();
+    c.translate(x, y);
+    c.globalAlpha = alpha;
+    c.globalCompositeOperation = "lighter";
+
+    const color = warm ? "255,170,54" : "255,247,218";
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, r * 3.2);
+    g.addColorStop(0, `rgba(${color},1)`);
+    g.addColorStop(0.12, `rgba(${color},.88)`);
+    g.addColorStop(0.34, "rgba(255,184,54,.30)");
+    g.addColorStop(1, "rgba(255,118,0,0)");
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(0, 0, r * 3.2, 0, TAU);
+    c.fill();
+
+    c.strokeStyle = `rgba(${color},.92)`;
+    c.lineCap = "round";
+    c.lineWidth = Math.max(0.5, r * 0.22);
+
+    c.beginPath();
+    c.moveTo(-r * 4.2, 0);
+    c.lineTo(r * 4.2, 0);
+    c.moveTo(0, -r * 4.2);
+    c.lineTo(0, r * 4.2);
+    c.stroke();
+
+    if (r > 2.1) {
+      c.globalAlpha *= 0.55;
+      c.beginPath();
+      c.moveTo(-r * 2.1, -r * 2.1);
+      c.lineTo(r * 2.1, r * 2.1);
+      c.moveTo(-r * 2.1, r * 2.1);
+      c.lineTo(r * 2.1, -r * 2.1);
+      c.stroke();
+    }
+    c.restore();
+  }
+
+  function drawBackground(t) {
+    ctx.drawImage(bgCanvas, 0, 0, W, H);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+
+    for (const d of dust) {
+      const a = d.a * (0.55 + 0.45 * Math.sin(t * 0.7 + d.p));
+      ctx.fillStyle = `rgba(255,165,64,${a})`;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, TAU);
+      ctx.fill();
+    }
+
+    for (const p of ambientParticles) {
+      const yy = (p.y - t * p.speed * (8 + p.depth * 24) + H) % H;
+      const tw = Math.pow(0.5 + 0.5 * Math.sin(t * p.twinkle + p.phase), 6);
+      const a = (0.08 + tw * 0.72) * (0.35 + p.depth * 0.65);
+      drawStar(ctx, p.x, yy, p.r * (0.7 + tw), a, true);
+    }
+
+    for (const s of streaks) {
+      const cycle = ((t * s.speed + s.phase * W) % (W + s.len * 2)) - s.len;
+      const y = s.y + Math.sin(t * 0.7 + s.phase) * 9;
+      const g = ctx.createLinearGradient(cycle - s.len, y, cycle + s.len, y);
+      g.addColorStop(0, "rgba(255,133,17,0)");
+      g.addColorStop(.48, "rgba(255,178,52,.02)");
+      g.addColorStop(.5, "rgba(255,237,188,.52)");
+      g.addColorStop(.52, "rgba(255,178,52,.02)");
+      g.addColorStop(1, "rgba(255,133,17,0)");
+      ctx.strokeStyle = g;
+      ctx.lineWidth = s.width;
+      ctx.beginPath();
+      ctx.moveTo(cycle - s.len, y);
+      ctx.lineTo(cycle + s.len, y);
+      ctx.stroke();
+    }
+
+    const centerGlow = ctx.createRadialGradient(
+      W * .5, H * .54, 0,
+      W * .5, H * .54, Math.max(W, H) * .33
+    );
+    centerGlow.addColorStop(0, "rgba(255,104,8,.12)");
+    centerGlow.addColorStop(.35, "rgba(255,63,0,.045)");
+    centerGlow.addColorStop(1, "rgba(255,63,0,0)");
+    ctx.fillStyle = centerGlow;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.restore();
+  }
+
+  function drawTextBody(t, p) {
+    const reveal = easeOutExpo(clamp(p / 0.78, 0, 1));
+    const front = mix(titleBounds.x - titleBounds.w * .15,
+                      titleBounds.x + titleBounds.w * 1.15,
+                      reveal);
+    const feather = Math.max(35, titleBounds.w * .085);
+
+    textCtx.clearRect(0, 0, W, H);
+    textCtx.save();
+    textCtx.textAlign = "center";
+    textCtx.textBaseline = "alphabetic";
+
+    const value = (textInput.value || "안녕하세요").trim();
+    const lines = value.split(/\n/).slice(0, 4);
+    const fontSize = chooseFontSize(lines);
+    const lineH = fontSize * 0.92;
+    const totalH = lineH * lines.length;
+    const centerY = H * 0.53;
+    const startY = centerY - totalH / 2 + lineH * 0.78;
+    textCtx.font = titleFont(fontSize);
+    textCtx.lineJoin = "round";
+    textCtx.miterLimit = 2;
+
+    const gold = textCtx.createLinearGradient(0, titleBounds.y, 0, titleBounds.y + titleBounds.h);
+    gold.addColorStop(0, "#fff8d7");
+    gold.addColorStop(.14, "#ffe69a");
+    gold.addColorStop(.38, "#ffb83c");
+    gold.addColorStop(.66, "#dc7407");
+    gold.addColorStop(1, "#6e2500");
+
+    textCtx.shadowColor = "rgba(255,120,0,.75)";
+    textCtx.shadowBlur = fontSize * .12;
+    textCtx.lineWidth = Math.max(2.5, fontSize * .022);
+    textCtx.strokeStyle = "rgba(255,243,196,.88)";
+    textCtx.fillStyle = gold;
+
+    for (let i = 0; i < lines.length; i++) {
+      const y = startY + i * lineH;
+      textCtx.strokeText(lines[i], W / 2, y);
+      textCtx.fillText(lines[i], W / 2, y);
+    }
+
+    textCtx.globalCompositeOperation = "destination-in";
+    const revealG = textCtx.createLinearGradient(front - feather, 0, front + feather, 0);
+    revealG.addColorStop(0, "rgba(255,255,255,1)");
+    revealG.addColorStop(.72, "rgba(255,255,255,.88)");
+    revealG.addColorStop(1, "rgba(255,255,255,0)");
+    textCtx.fillStyle = revealG;
+    textCtx.fillRect(0, 0, W, H);
+    textCtx.restore();
+
+    glowCtx.clearRect(0, 0, W, H);
+    glowCtx.save();
+    glowCtx.globalCompositeOperation = "lighter";
+    glowCtx.filter = `blur(${Math.max(12, fontSize * .09)}px)`;
+    glowCtx.globalAlpha = .72;
+    glowCtx.drawImage(textCanvas, 0, 0, W, H);
+    glowCtx.filter = `blur(${Math.max(4, fontSize * .025)}px)`;
+    glowCtx.globalAlpha = .9;
+    glowCtx.drawImage(textCanvas, 0, 0, W, H);
+    glowCtx.restore();
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.drawImage(glowCanvas, 0, 0, W, H);
+    ctx.restore();
+    ctx.drawImage(textCanvas, 0, 0, W, H);
+
+    drawGoldTexture(t, front, feather);
+    drawLightSweep(t, p);
+  }
+
+  function drawGoldTexture(t, front, feather) {
+    particleCtx.clearRect(0, 0, W, H);
+    particleCtx.save();
+    particleCtx.globalCompositeOperation = "lighter";
+
+    const count = Math.floor(clamp((W * H) / 1350, 380, 1200));
+    for (let i = 0; i < count; i++) {
+      const r1 = hash(i * 4 + 0.3);
+      const r2 = hash(i * 4 + 1.7);
+      const x = titleBounds.x + r1 * titleBounds.w;
+      const y = titleBounds.y + r2 * titleBounds.h;
+      if (maskAlphaAt(x, y) < 150) continue;
+      if (x > front + feather) continue;
+
+      const tw = Math.pow(.5 + .5 * Math.sin(t * (2 + hash(i) * 5) + i), 5);
+      const a = .10 + tw * .56;
+      const rr = .45 + hash(i * 8.1) * 1.35;
+      particleCtx.fillStyle = `rgba(255,244,198,${a})`;
+      particleCtx.beginPath();
+      particleCtx.arc(x, y, rr, 0, TAU);
+      particleCtx.fill();
+    }
+    particleCtx.restore();
+
+    particleCtx.globalCompositeOperation = "destination-in";
+    particleCtx.drawImage(maskCanvas, 0, 0, W, H);
+    particleCtx.globalCompositeOperation = "source-over";
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.drawImage(particleCanvas, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  function drawLightSweep(t, p) {
+    const sweepT = ((t * .24) % 1.45) - .18;
+    const x = mix(titleBounds.x - titleBounds.w * .25,
+                  titleBounds.x + titleBounds.w * 1.25,
+                  sweepT);
+    const w = Math.max(45, titleBounds.w * .055);
+
+    particleCtx.clearRect(0, 0, W, H);
+    const g = particleCtx.createLinearGradient(x - w, 0, x + w, 0);
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(.46, "rgba(255,244,201,.18)");
+    g.addColorStop(.5, "rgba(255,255,255,.92)");
+    g.addColorStop(.54, "rgba(255,244,201,.18)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    particleCtx.fillStyle = g;
+    particleCtx.fillRect(x - w, titleBounds.y - 30, w * 2, titleBounds.h + 60);
+    particleCtx.globalCompositeOperation = "destination-in";
+    particleCtx.drawImage(maskCanvas, 0, 0, W, H);
+    particleCtx.globalCompositeOperation = "source-over";
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = smoothstep(.35, .8, p);
+    ctx.drawImage(particleCanvas, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  function drawTextSparks(t, p) {
+    const reveal = easeOutExpo(clamp(p / .78, 0, 1));
+    const front = mix(titleBounds.x - titleBounds.w * .15,
+                      titleBounds.x + titleBounds.w * 1.15,
+                      reveal);
+    const intensity = Number(sparkRange.value);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    for (const s of textParticles) {
+      if (s.x > front + titleBounds.w * .06) continue;
+      const appear = smoothstep(s.delay * .72, s.delay * .72 + .18, p);
+      const wave = .5 + .5 * Math.sin(t * s.speed + s.phase);
+      const pulse = Math.pow(wave, 9);
+      const alpha = appear * (0.06 + pulse * .94) * s.shine;
+      const rr = s.r * (0.75 + pulse * 1.8) * Math.sqrt(intensity);
+      drawStar(ctx, s.x + Math.sin(t + s.phase) * s.drift, s.y, rr, alpha, false);
+    }
+    ctx.restore();
+  }
+
+  function drawRevealFront(t, p) {
+    const reveal = easeOutExpo(clamp(p / .78, 0, 1));
+    const x = mix(titleBounds.x - titleBounds.w * .15,
+                  titleBounds.x + titleBounds.w * 1.15,
+                  reveal);
+    const active = 1 - smoothstep(.72, .98, p);
+    if (active <= 0) return;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+
+    const g = ctx.createLinearGradient(x - 80, 0, x + 80, 0);
+    g.addColorStop(0, "rgba(255,158,30,0)");
+    g.addColorStop(.42, "rgba(255,181,55,.08)");
+    g.addColorStop(.5, `rgba(255,247,220,${.76 * active})`);
+    g.addColorStop(.58, "rgba(255,181,55,.08)");
+    g.addColorStop(1, "rgba(255,158,30,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 80, titleBounds.y - 100, 160, titleBounds.h + 200);
+
+    const rg = ctx.createRadialGradient(x, H * .52, 0, x, H * .52, H * .48);
+    rg.addColorStop(0, `rgba(255,179,57,${.12 * active})`);
+    rg.addColorStop(1, "rgba(255,120,0,0)");
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.restore();
+  }
+
+  function drawShockwaves(p) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+
+    for (const ring of shockRings) {
+      const local = (p - ring.born) / .36;
+      if (local < 0 || local > 1) continue;
+      const e = easeOutCubic(local);
+      const r = ring.maxR * e;
+      const a = (1 - local) * .26;
+      ctx.strokeStyle = `rgba(255,172,57,${a})`;
+      ctx.lineWidth = mix(5, 1, local);
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, r, 0, TAU);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawFlash(p) {
+    const a = Math.sin(clamp((p - .10) / .20, 0, 1) * Math.PI) * .11;
+    if (a <= 0) return;
+    ctx.fillStyle = `rgba(255,177,75,${a})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawVignette() {
+    const g = ctx.createRadialGradient(
+      W * .5, H * .48, Math.min(W, H) * .12,
+      W * .5, H * .5, Math.max(W, H) * .72
+    );
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(.58, "rgba(0,0,0,.04)");
+    g.addColorStop(1, "rgba(0,0,0,.72)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawGrain(t) {
+    ctx.save();
+    ctx.globalCompositeOperation = "soft-light";
+    ctx.globalAlpha = .14;
+    const ox = (t * 23) % 17;
+    const oy = (t * 31) % 13;
+    ctx.drawImage(grainCanvas, -ox, -oy, W + 34, H + 26);
+    ctx.restore();
+  }
+
+  function render(now) {
+    const t = (now - startTime) / 1000;
+    const duration = Number(speedRange.value);
+    const p = clamp(t / duration, 0, 1);
+
+    ctx.clearRect(0, 0, W, H);
+    drawBackground(t);
+    drawShockwaves(p);
+    drawRevealFront(t, p);
+    drawTextBody(t, p);
+    drawTextSparks(t, p);
+    drawFlash(p);
+    drawGrain(t);
+    drawVignette();
+
+    requestAnimationFrame(render);
+  }
+
+  function savePNG() {
+    const a = document.createElement("a");
+    a.download = `gold-title-${Date.now()}.png`;
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+
+  function toggleUI() {
+    uiHidden = !uiHidden;
+    ui.classList.toggle("hidden", uiHidden);
+    hint.classList.toggle("hidden", uiHidden);
+  }
+
+  sparkRange.addEventListener("input", () => {
+    sparkValue.textContent = Number(sparkRange.value).toFixed(2) + "×";
+  });
+  sparkRange.addEventListener("change", () => resetAnimation(true));
+
+  speedRange.addEventListener("input", () => {
+    speedValue.textContent = Number(speedRange.value).toFixed(1) + "s";
+  });
+
+  playBtn.addEventListener("click", () => resetAnimation(true));
+  shotBtn.addEventListener("click", savePNG);
+  fullBtn.addEventListener("click", toggleFullscreen);
+
+  textInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      resetAnimation(true);
+      canvas.focus();
+    }
+  });
+
+  canvas.addEventListener("click", () => resetAnimation(false));
+
+  window.addEventListener("keydown", e => {
+    if (e.target === textInput) return;
+    if (e.key === "Enter" || e.code === "Space") {
+      e.preventDefault();
+      resetAnimation(false);
+    } else if (e.key.toLowerCase() === "f") {
+      toggleFullscreen();
+    } else if (e.key.toLowerCase() === "h") {
+      toggleUI();
+    }
+  });
+
+  window.addEventListener("resize", resize);
+  document.addEventListener("fullscreenchange", () => setTimeout(resize, 100));
+
+  async function start() {
+    try {
+      await document.fonts?.load(`900 120px ${CUSTOM_FONT}`);
+    } catch (error) {
+      console.warn("Custom font could not be loaded.", error);
+    }
+    resize();
+    requestAnimationFrame(render);
+  }
+
+  start();
+})();
+</script>
+</body>
+</html>
